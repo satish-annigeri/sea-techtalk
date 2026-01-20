@@ -12,9 +12,9 @@ def _():
     from enum import Enum
     from dataclasses import dataclass, field
     import pandas as pd
-    from sectionproperties.pre import Geometry
     from sectionproperties.analysis import Section
     from sectionproperties.pre.library import tapered_flange_i_section
+
     return Enum, Section, dataclass, field, math, pd, tapered_flange_i_section
 
 
@@ -47,6 +47,7 @@ def _(Enum):
 
         def __str__(self) -> str:
             return f"Buckling Class {self.name}"
+
     return BeamType, SectionBucklingClass, SectionClass
 
 
@@ -79,7 +80,7 @@ def _(
         mesh_sizes: list[int] = field(default_factory=lambda: [100])
         section: Section | None = None
 
-        def get_sec_prop(self, sec_db: pd.DataFrame, w: float=0.0):
+        def get_sec_prop(self, sec_db: pd.DataFrame, w: float = 0.0):
             sec_list = sec_db[sec_db["desig"] == self.desig]
             if len(sec_list) > 1 and w > 0:
                 sec_list = sec_list[sec_list["w"] == w]
@@ -87,7 +88,16 @@ def _(
                 raise ValueError(f"Invalid section designation '{self.desig}'")
 
             props = sec_list.iloc[0].to_dict()
-            geom = tapered_flange_i_section(b=props["b"], d=props["d"], t_f=props["t_f"], t_w=props["t_w"], r_r=props["r_r"], r_f=props["r_f"], alpha=props["alpha"], n_r=self.n_r)
+            geom = tapered_flange_i_section(
+                b=props["b"],
+                d=props["d"],
+                t_f=props["t_f"],
+                t_w=props["t_w"],
+                r_r=props["r_r"],
+                r_f=props["r_f"],
+                alpha=props["alpha"],
+                n_r=self.n_r,
+            )
             self.props = props
             geom.create_mesh(mesh_sizes=self.mesh_sizes)
             self.section = Section(geometry=geom)
@@ -169,16 +179,21 @@ def _(
             if tmp:
                 buckling_class = tmp[axis]
                 match buckling_class:
-                    case SectionBucklingClass.a: return 0.21
-                    case SectionBucklingClass.b: return 0.34
-                    case SectionBucklingClass.c: return 0.49
-                    case SectionBucklingClass.d: return 0.76
-                    case _: raise ValueError(f"Invalid buckling class '{buckling_class}'")
+                    case SectionBucklingClass.a:
+                        return 0.21
+                    case SectionBucklingClass.b:
+                        return 0.34
+                    case SectionBucklingClass.c:
+                        return 0.49
+                    case SectionBucklingClass.d:
+                        return 0.76
+                    case _:
+                        raise ValueError(f"Invalid buckling class '{buckling_class}'")
             else:
                 raise ValueError(f"Error: Invalid axis '{axis}'")
 
         def fcc(self, Leff: float, r: float) -> float:
-            return math.pi**2 * self.E / (Leff / r)**2
+            return math.pi**2 * self.E / (Leff / r) ** 2
 
         def lambda_(self, Leff: float, r: float) -> float:
             return math.sqrt(self.fy / self.fcc(Leff, r))
@@ -234,15 +249,29 @@ def _(
             tf = self.props["t_f"]
             hf = self.props["d"] - tf
             Leff_ry = Leff / ry
-            return 1.1 * math.pi**2 *  self.E / Leff_ry**2 * math.sqrt(1 + (Leff_ry / (hf / tf))**2 / 20)
+            return (
+                1.1
+                * math.pi**2
+                * self.E
+                / Leff_ry**2
+                * math.sqrt(1 + (Leff_ry / (hf / tf)) ** 2 / 20)
+            )
 
-        def f_bd(self, Leff: float, gamma_mo: float=1.1, laterally_supported: bool = True) -> float:
+        def f_bd(
+            self, Leff: float, gamma_mo: float = 1.1, laterally_supported: bool = True
+        ) -> float:
             if laterally_supported:
                 return self.fy / gamma_mo
             else:
                 return self.chi_LT(Leff) * self.fy / gamma_mo
 
-        def Md(self, Leff: float, gamma_mo: float = 1.1, laterally_supported: bool=True, beam_type: BeamType=BeamType.SIMPLY_SUPPORTED) -> float:
+        def Md(
+            self,
+            Leff: float,
+            gamma_mo: float = 1.1,
+            laterally_supported: bool = True,
+            beam_type: BeamType = BeamType.SIMPLY_SUPPORTED,
+        ) -> float:
             Zp = self.Sxx
             fbd = self.f_bd(Leff, gamma_mo, laterally_supported)
             Md = self.beta_b * Zp * fbd
@@ -265,6 +294,7 @@ def _(
 
         def Vp(self) -> float:
             return self.Av * self.fy / math.sqrt(3.0)
+
     return (ISection,)
 
 
@@ -274,11 +304,17 @@ def _(ISection, sec_db):
     try:
         sec = ISection("ISMB500")
         sec.get_sec_prop(sec_db)
-        print(f"Area={sec.area:,.2f}, Ixx={sec.Ixx:,.2f}, Iyy={sec.Iyy:,.2f}, Sxx={sec.Sxx:,.2f}, Syy={sec.Syy:,.2f}")
+        print(
+            f"Area={sec.area:,.2f}, Ixx={sec.Ixx:,.2f}, Iyy={sec.Iyy:,.2f}, Sxx={sec.Sxx:,.2f}, Syy={sec.Syy:,.2f}"
+        )
         print(f"rx={sec.rx:,.2f}, ry={sec.ry:,.2f}")
-        print(f"zz: {sec.buckling_class()['zz']} yy: {sec.buckling_class()['yy']}, alpha={sec.alpha_("zz")}, class={sec.class_of_section}, beta_b={sec.beta_b}")
+        print(
+            f"zz: {sec.buckling_class()['zz']} yy: {sec.buckling_class()['yy']}, alpha={sec.alpha_('zz')}, class={sec.class_of_section}, beta_b={sec.beta_b}"
+        )
         print(f"chi_LT={sec.chi_LT(_Leff):,.2f}")
-        print(f"Md={sec.Md(_Leff, gamma_mo=1.1, laterally_supported=False)/1e6:,.2f} kNm")
+        print(
+            f"Md={sec.Md(_Leff, gamma_mo=1.1, laterally_supported=False) / 1e6:,.2f} kNm"
+        )
         print(f"f_crb={sec.f_crb(_Leff):,.2f}")
         print(f"f_bd={sec.f_bd(_Leff, laterally_supported=False):,.2f}")
     except Exception as e:
@@ -291,7 +327,7 @@ def _(ISection, sec_db):
     try:
         _axis = "yy"
         ishb300 = ISection("ISHB300")
-        ishb300.get_sec_prop(sec_db)
+        ishb300.get_sec_prop(sec_db, w=58.8)
         _Leff = 3e3
         _r = min(ishb300.rx, ishb300.ry)
         lambda_ = ishb300.lambda_(_Leff, _r)
@@ -299,9 +335,15 @@ def _(ISection, sec_db):
         _fcc = ishb300.fcc(_Leff, _r)
         _chi = ishb300.chi_(_Leff, _r, _axis)
         _fcd = ishb300.f_cd(_Leff, _r, 1.1, _axis)
-        print(f"{ishb300.buckling_class()['zz']}, {ishb300.buckling_class()['yy']}, r_min={_r:,.6f}")
-        print(f"alpha={ishb300.alpha_(axis=_axis):,.2f}, lambda={lambda_:.6f}, phi={phi_:.6f}, fcc={_fcc:.2f}, chi={_chi:.6f}")
-        print(f"Area={ishb300.area:.2f} mm^2, fcd={_fcd:.2f} N/mm^2, Pd={ishb300.Pd(_Leff, _r, 1.1, _axis)/1e3:.2f} kN")
+        print(
+            f"{ishb300.buckling_class()['zz']}, {ishb300.buckling_class()['yy']}, r_min={_r:,.6f}"
+        )
+        print(
+            f"alpha={ishb300.alpha_(axis=_axis):,.2f}, lambda={lambda_:.6f}, phi={phi_:.6f}, fcc={_fcc:.2f}, chi={_chi:.6f}"
+        )
+        print(
+            f"Area={ishb300.area:.2f} mm^2, fcd={_fcd:.2f} N/mm^2, Pd={ishb300.Pd(_Leff, _r, 1.1, _axis) / 1e3:.2f} kN"
+        )
     except Exception as e:
         print(f"Error: {e}")
     return
