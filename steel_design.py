@@ -9,12 +9,45 @@ def _():
     import marimo as mo
 
     import math
+    from enum import Enum
     from dataclasses import dataclass, field
     import pandas as pd
     from sectionproperties.pre import Geometry
     from sectionproperties.analysis import Section
     from sectionproperties.pre.library import tapered_flange_i_section
-    return Section, dataclass, field, math, pd, tapered_flange_i_section
+    return Enum, Section, dataclass, field, math, pd, tapered_flange_i_section
+
+
+@app.cell
+def _(Enum):
+    class MemberType(Enum):
+        BEAM = 1
+        COLUMN = 2
+        TRUSS_COMPRESSION = 3
+        TRUSS_TENSION = 4
+
+    class BeamType(Enum):
+        SIMPLY_SUPPORTED = 1
+        CANTILEVER = 2
+
+    class SectionClass(Enum):
+        PLASTIC = 1
+        COMPACT = 2
+        SEMI_COMPACT = 3
+        SLENDER = 4
+
+        def __str__(self) -> str:
+            return f"{self.name.capitalize()}"
+
+    class SectionBucklingClass(Enum):
+        a = 1
+        b = 2
+        c = 3
+        d = 4
+
+        def __str__(self) -> str:
+            return f"Buckling Class {self.name}"
+    return BeamType, SectionBucklingClass, SectionClass
 
 
 @app.cell
@@ -26,7 +59,17 @@ def _(pd):
 
 
 @app.cell
-def _(Section, dataclass, field, math, pd, tapered_flange_i_section):
+def _(
+    BeamType,
+    Section,
+    SectionBucklingClass,
+    SectionClass,
+    dataclass,
+    field,
+    math,
+    pd,
+    tapered_flange_i_section,
+):
     @dataclass
     class ISection:
         desig: str
@@ -85,21 +128,21 @@ def _(Section, dataclass, field, math, pd, tapered_flange_i_section):
         def ry(self) -> float:
             return self.section.get_rc()[1]
 
-        def buckling_class(self) -> dict[str, str]:
+        def buckling_class(self) -> dict[str, SectionBucklingClass]:
             h_bf = self.props["d"] / self.props["b"]
             tf = self.props["t_f"]
             if h_bf > 1.2:
                 if tf <= 40:
-                    return {"zz": "a", "yy": "b"}
+                    return {"zz": SectionBucklingClass.a, "yy": SectionBucklingClass.b}
                 elif 40 < tf <= 100:
-                    return {"zz": "b", "yy": "c"}
+                    return {"zz": SectionBucklingClass.b, "yy": SectionBucklingClass.c}
                 else:
                     raise ValueError(f"Invalid value for t_f={tf}")
             elif 0 < h_bf <= 1.2:
                 if 0 < tf <= 100:
-                    return {"zz": "b", "yy": "c"}
+                    return {"zz": SectionBucklingClass.b, "yy": SectionBucklingClass.c}
                 elif tf > 100:
-                    return {"zz": "d", "yy": "d"}
+                    return {"zz": SectionBucklingClass.d, "yy": SectionBucklingClass.d}
                 else:
                     raise ValueError(f"Invalid value for t_f={tf}")
 
@@ -107,31 +150,31 @@ def _(Section, dataclass, field, math, pd, tapered_flange_i_section):
         def alpha(self) -> float:
             buckling_class = self.buckling_class()["zz"]
             match buckling_class:
-                case "a": return 0.21
-                case "b": return 0.34
-                case "c": return 0.49
-                case "d": return 0.76
+                case SectionBucklingClass.a: return 0.21
+                case SectionBucklingClass.b: return 0.34
+                case SectionBucklingClass.c: return 0.49
+                case SectionBucklingClass.d: return 0.76
                 case _: raise ValueError(f"Invalid buckling class '{buckling_class}'")
 
         @property
-        def class_of_section(self) -> str:
+        def class_of_section(self) -> SectionClass:
             epsilon = math.sqrt(250.0 / self.fy)
             b_tf = self.props["b"] / self.props["t_f"]
             if b_tf < 9.4 * epsilon:
-                return "plastic"
+                return SectionClass.PLASTIC
             elif b_tf < 10.5 * epsilon:
-                return "compact"
+                return SectionClass.COMPACT
             elif b_tf < 15.7 * epsilon:
-                return "semi-compact"
+                return SectionClass.SEMI_COMPACT
             else:
-                return "slender"
+                return SectionClass.SLENDER
 
         @property
         def beta_b(self) -> float:
             class_of_section = self.class_of_section
-            if class_of_section in ["plastic", "compact"]:
+            if class_of_section in [SectionClass.PLASTIC, SectionClass.COMPACT]:
                 return 1.0
-            elif class_of_section == "semi-compact":
+            elif class_of_section == SectionClass.SEMI_COMPACT:
                 return self.Zxx / self.Sxx
             else:
                 return 0.0
@@ -146,7 +189,7 @@ def _(Section, dataclass, field, math, pd, tapered_flange_i_section):
             hf = self.props["d"] - tf
             Leff_ry = Leff / ry
             return 1.1 * math.pi**2 *  self.E / Leff_ry**2 * math.sqrt(1 + (Leff_ry / (hf / tf))**2 / 20)
-        
+
         def f_bd(self, Leff: float, gamma_mo: float=1.1, laterally_supported: bool = True) -> float:
             if laterally_supported:
                 return self.fy / gamma_mo
@@ -166,16 +209,16 @@ def _(Section, dataclass, field, math, pd, tapered_flange_i_section):
             lambda_LT = self.lambda_LT(Leff)
             return min(1.0, 1 / (phi_LT + math.sqrt(phi_LT**2 - lambda_LT**2)))
 
-        def Md(self, Leff: float, gamma_mo: float = 1.1, laterally_supported: bool=True, beam_type: str="simply supported") -> float:
+        def Md(self, Leff: float, gamma_mo: float = 1.1, laterally_supported: bool=True, beam_type: BeamType=BeamType.SIMPLY_SUPPORTED) -> float:
             Zp = self.Sxx
             fbd = self.f_bd(Leff, gamma_mo, laterally_supported)
             Md = self.beta_b * Zp * fbd
-    
+
             if laterally_supported:
                 max_Md = section.Zxx * fbd
-                if beam_type == "simply supported":
+                if beam_type == BeamType.SIMPLY_SUPPORTED:
                     return min(1.2 * max_Md, Md)
-                elif beam_type == "cantilever":
+                elif beam_type == BeamType.CANTILEVER:
                     return min(1.5 * max_Md, Md)
                 else:
                     raise ValueError(f"Invalid bame_type='{beam_type}'")
@@ -197,11 +240,11 @@ def _(ISection, sec_db):
     try:
         sec = ISection("ISMB500")
         sec.get_sec_prop(sec_db)
-        print(f"Area={sec.area:.2f}, Ixx={sec.Ixx:.2f}, Iyy={sec.Iyy:.2f}, Sxx={sec.Sxx:.2f}, Syy={sec.Syy:.2f}")
-        print(f"rx={sec.rx:.2f}, ry={sec.ry:.2f}")
-        print(f"Buckling class={sec.buckling_class()}, alpha={sec.alpha}, class={sec.class_of_section}, beta_b={sec.beta_b}")
-        print(f"chi_LT={sec.chi_LT(Leff):.2f}")
-        print(f"Md={sec.Md(Leff, gamma_mo=1.1, laterally_supported=False)/1e6:.2f} kNm")
+        print(f"Area={sec.area:,.2f}, Ixx={sec.Ixx:,.2f}, Iyy={sec.Iyy:,.2f}, Sxx={sec.Sxx:,.2f}, Syy={sec.Syy:,.2f}")
+        print(f"rx={sec.rx:,.2f}, ry={sec.ry:,.2f}")
+        print(f"zz: {sec.buckling_class()['zz']} yy: {sec.buckling_class()['yy']}, alpha={sec.alpha}, class={sec.class_of_section}, beta_b={sec.beta_b}")
+        print(f"chi_LT={sec.chi_LT(Leff):,.2f}")
+        print(f"Md={sec.Md(Leff, gamma_mo=1.1, laterally_supported=False)/1e6:,.2f} kNm")
     except Exception as e:
         print(f"Error: {e}")
     return Leff, sec
@@ -209,8 +252,14 @@ def _(ISection, sec_db):
 
 @app.cell
 def _(Leff, sec):
-    print(f"f_crb={sec.f_crb(Leff):.2f}")
-    print(f"f_bd={sec.f_bd(Leff, laterally_supported=False):.2f}")
+    print(f"f_crb={sec.f_crb(Leff):,.2f}")
+    print(f"f_bd={sec.f_bd(Leff, laterally_supported=False):,.2f}")
+    return
+
+
+@app.cell
+def _(SectionBucklingClass):
+    print(SectionBucklingClass.a)
     return
 
 
