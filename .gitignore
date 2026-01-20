@@ -16,7 +16,3 @@ wheels/
 # Marimo temporary files folder
 __marimo__/
 
-# Data files
-*.xls*
-*.csv
-*.docx
