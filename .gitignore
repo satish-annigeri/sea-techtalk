@@ -13,6 +13,9 @@ wheels/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
+# Marimo temporary files folder
+__marimo__/
+
 # Data files
 *.xls*
 *.csv
