@@ -94,6 +94,7 @@ def _(
             self.section.calculate_geometric_properties()
             self.section.calculate_plastic_properties()
 
+        # Geometric properties of section
         @property
         def area(self) -> float:
             return self.section.get_area()
@@ -130,7 +131,8 @@ def _(
         def ry(self) -> float:
             return self.section.get_rc()[1]
 
-        def buckling_class(self) -> dict[str, SectionBucklingClass]:
+        # Properties of section required in design
+        def buckling_class(self) -> dict[str, SectionBucklingClass] | None:
             h_bf = self.props["d"] / self.props["b"]
             tf = self.props["t_f"]
             if h_bf > 1.2:
@@ -148,14 +150,32 @@ def _(
                 else:
                     raise ValueError(f"Invalid value for t_f={tf}")
 
+        @property
+        def class_of_section(self) -> SectionClass:
+            epsilon = math.sqrt(250.0 / self.fy)
+            b_tf = self.props["b"] / self.props["t_f"]
+            if b_tf < 9.4 * epsilon:
+                return SectionClass.PLASTIC
+            elif b_tf < 10.5 * epsilon:
+                return SectionClass.COMPACT
+            elif b_tf < 15.7 * epsilon:
+                return SectionClass.SEMI_COMPACT
+            else:
+                return SectionClass.SLENDER
+
+        # Design for compression
         def alpha_(self, axis: str) -> float:
-            buckling_class = self.buckling_class()[axis]
-            match buckling_class:
-                case SectionBucklingClass.a: return 0.21
-                case SectionBucklingClass.b: return 0.34
-                case SectionBucklingClass.c: return 0.49
-                case SectionBucklingClass.d: return 0.76
-                case _: raise ValueError(f"Invalid buckling class '{buckling_class}'")
+            tmp = self.buckling_class()
+            if tmp:
+                buckling_class = tmp[axis]
+                match buckling_class:
+                    case SectionBucklingClass.a: return 0.21
+                    case SectionBucklingClass.b: return 0.34
+                    case SectionBucklingClass.c: return 0.49
+                    case SectionBucklingClass.d: return 0.76
+                    case _: raise ValueError(f"Invalid buckling class '{buckling_class}'")
+            else:
+                raise ValueError(f"Error: Invalid axis '{axis}'")
 
         def fcc(self, Leff: float, r: float) -> float:
             return math.pi**2 * self.E / (Leff / r)**2
@@ -180,20 +200,8 @@ def _(
             fcd = self.f_cd(Leff, r, gamma_mo, axis)
             area = self.area
             return area * fcd
-        
-        @property
-        def class_of_section(self) -> SectionClass:
-            epsilon = math.sqrt(250.0 / self.fy)
-            b_tf = self.props["b"] / self.props["t_f"]
-            if b_tf < 9.4 * epsilon:
-                return SectionClass.PLASTIC
-            elif b_tf < 10.5 * epsilon:
-                return SectionClass.COMPACT
-            elif b_tf < 15.7 * epsilon:
-                return SectionClass.SEMI_COMPACT
-            else:
-                return SectionClass.SLENDER
 
+        # Design for bending
         @property
         def beta_b(self) -> float:
             class_of_section = self.class_of_section
@@ -240,7 +248,7 @@ def _(
             Md = self.beta_b * Zp * fbd
 
             if laterally_supported:
-                max_Md = section.Zxx * fbd
+                max_Md = self.Zxx * fbd
                 if beam_type == BeamType.SIMPLY_SUPPORTED:
                     return min(1.2 * max_Md, Md)
                 elif beam_type == BeamType.CANTILEVER:
@@ -250,6 +258,7 @@ def _(
             else:
                 return Md
 
+        # Design for shear
         @property
         def Av(self) -> float:
             return self.props["d"] * self.props["t_w"]
@@ -279,17 +288,22 @@ def _(ISection, sec_db):
 
 @app.cell
 def _(ISection, sec_db):
-    ishb300 = ISection("ISHB300")
-    ishb300.get_sec_prop(sec_db)
-    _Leff = 3e3
-    _r = min(ishb300.rx, ishb300.ry)
-    lambda_ = ishb300.lambda_(_Leff, _r)
-    phi_ = ishb300.phi_(_Leff, _r, axis="yy")
-    _fcc = ishb300.fcc(_Leff, _r)
-    _chi = ishb300.chi_(_Leff, _r, "yy")
-    _fcd = ishb300.f_cd(_Leff, _r, 1.1, "yy")
-    print(f"{ishb300.buckling_class()['zz']}, {ishb300.buckling_class()['yy']}, r_min={_r:,.6f}, alpha={ishb300.alpha_(axis="yy"):,.2f}, lambda={lambda_:.6f}, phi={phi_:.6f}, fcc={_fcc:.2f}, chi={_chi:.6f}, fcd={_fcd:.2f}")
-    print(f"Pd={ishb300.Pd(_Leff, _r, 1.1, "yy")/1e3:.2f} kN")
+    try:
+        _axis = "yy"
+        ishb300 = ISection("ISHB300")
+        ishb300.get_sec_prop(sec_db)
+        _Leff = 3e3
+        _r = min(ishb300.rx, ishb300.ry)
+        lambda_ = ishb300.lambda_(_Leff, _r)
+        phi_ = ishb300.phi_(_Leff, _r, axis=_axis)
+        _fcc = ishb300.fcc(_Leff, _r)
+        _chi = ishb300.chi_(_Leff, _r, _axis)
+        _fcd = ishb300.f_cd(_Leff, _r, 1.1, _axis)
+        print(f"{ishb300.buckling_class()['zz']}, {ishb300.buckling_class()['yy']}, r_min={_r:,.6f}")
+        print(f"alpha={ishb300.alpha_(axis=_axis):,.2f}, lambda={lambda_:.6f}, phi={phi_:.6f}, fcc={_fcc:.2f}, chi={_chi:.6f}")
+        print(f"Area={ishb300.area:.2f} mm^2, fcd={_fcd:.2f} N/mm^2, Pd={ishb300.Pd(_Leff, _r, 1.1, _axis)/1e3:.2f} kN")
+    except Exception as e:
+        print(f"Error: {e}")
     return
 
 
