@@ -1,7 +1,7 @@
-from typing import Callable, Optional
+from typing import Callable
 
 
-def find_bracket(f, x_start, x_end, n, **kwargs):
+def find_bracket(f: Callable, x_start: float, x_end: float, n: int = 10, **kwargs):
     """
     Find x1, x2 that bracket a root of f(x) in [x_start, x_end] by dividing
     the interval into n equal parts and scanning for a sign change.
@@ -47,10 +47,14 @@ def find_bracket(f, x_start, x_end, n, **kwargs):
 
         x_prev, f_prev = x_curr, f_curr
 
-    return None, None
+    raise ValueError(
+        f"Error: find_bracket() could not determine brackets between [{x_start}, {x_end}] with {n} intervals"
+    )
 
 
-def brent_root(f, x1, x2, max_iter, tol, **kwargs):
+def brent_root(
+    f: Callable, x1: float, x2: float, max_iter: int = 30, tol: float = 1e-12, **kwargs
+) -> float:
     """
     Find a root of f(x) in the bracket [x1, x2] using Brent's method.
 
@@ -83,7 +87,9 @@ def brent_root(f, x1, x2, max_iter, tol, **kwargs):
 
     if f1 * f2 > 0:
         # No bracket
-        return None
+        raise ValueError(
+            f"Error: bisection() interval {x1} and {x2} does not bracket the roots"
+        )
 
     # Rename variables to match Brent's notation
     a, b = x1, x2
@@ -159,12 +165,14 @@ def brent_root(f, x1, x2, max_iter, tol, **kwargs):
             c, fc = a, fa
 
     # Failed to converge
-    return None
+    raise ValueError(
+        f"Error: brent_root() did not converge after {max_iter} iterations"
+    )
 
 
 def bisection(
     f: Callable, x1: float, x2: float, max_iter: int = 30, tol: float = 1e-12, **kwargs
-) -> Optional[float]:
+) -> float:
     """
     Find a root of f(x) in the bracket [x1, x2] using the bisection method.
 
@@ -192,7 +200,9 @@ def bisection(
 
     if f1 * f2 > 0:
         # No bracket
-        return None
+        raise ValueError(
+            f"Error: bisection() interval {x1} and {x2} does not bracket the roots"
+        )
 
     for _ in range(max_iter):
         xm = 0.5 * (x1 + x2)
@@ -208,7 +218,7 @@ def bisection(
 
     # print("Failed to converge in bisection")
     # Failed to converge
-    return None
+    raise ValueError(f"Error: bisection() did not converge after {max_iter} iterations")
 
 
 if __name__ == "__main__":
