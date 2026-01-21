@@ -15,4 +15,5 @@ wheels/
 
 # Marimo temporary files folder
 __marimo__/
+layouts/
 
