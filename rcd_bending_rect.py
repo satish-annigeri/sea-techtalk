@@ -37,22 +37,11 @@ class FlexuralMemberType(Enum):
     SLAB = 2
 
 
-@dataclass
-class ShearReinforcement:
-    dia: float
-    nlegs: int
-    alpha: float = 90
-    sv: float = 0.0
-
-    @property
-    def Asv(self) -> float:
-        return self.nlegs * (math.pi * self.dia**2) / 4
-
-    def reqd_sv(self, Vu: float, Vus: float) -> float:
-        pass
-
-    def sv_max(self):
-        pass
+class ShearReinforcementType(Enum):
+    VERTICAL_STIRRUP = 1
+    INCLINED_STIRRUP = 2
+    SERIES_BENTUP_BARS = 3
+    BENTUP_BARS = 4
 
 
 @dataclass
@@ -77,7 +66,7 @@ class Concrete:
             ec_ecy = ec / self.ecy
             return self.fd * (2 * ec_ecy - ec_ecy**2)
 
-    def tau_cmax(self) -> float | None:
+    def tau_cmax(self) -> float:
         table20 = np.array(
             [[15, 20, 25, 30, 35, 40], [2.5, 2.8, 3.1, 3.5, 3.7, 4.0]], dtype=float
         ).T
@@ -190,6 +179,63 @@ class RebarHYSD(Rebar):
                 y2 = self.es_fs[i, 1]
                 fs = y1 + (y2 - y1) / (x2 - x1) * (_es - x1)
                 return math.copysign(fs, es)
+
+
+@dataclass
+class ShearReinforcement(ABC):
+    rebar: Rebar
+    dia: float
+    nlegs: int
+    alpha: float = 90.0
+
+    @property
+    def nbars(self) -> int:
+        return self.nlegs
+
+    @nbars.setter
+    def nbars(self, value: int):
+        self.nlegs = value
+
+    @property
+    def Asv(self) -> float:
+        return self.nlegs * (math.pi * self.dia**2 / 4)
+
+    def sv_max(self, b: float, d: float) -> float:
+        if self.alpha == 45:
+            sv1 = d
+        elif self.alpha == 90:
+            sv1 = 0.75 * d
+        else:
+            sv1 = 0.75 * d
+
+        return min(sv1, self.rebar.fd * self.Asv / (0.4 * b), 300.0)
+
+    @abstractmethod
+    def sv(self, Vus: float, b: float, d: float) -> float:
+        pass
+
+
+@dataclass
+class Stirrups(ShearReinforcement):
+    def __post_init__(self):
+        if self.alpha == 90:
+            self._type = ShearReinforcementType.VERTICAL_STIRRUP
+        else:
+            self._type = ShearReinforcementType.INCLINED_STIRRUP
+
+    def sv(self, Vus: float, b: float, d: float) -> float:
+        sv1 = self.rebar.fd * self.Asv * d / Vus
+        if self.alpha != 90:  # Inclined stirrups
+            alpha_rad = self.alpha * math.pi / 180.0
+            sv1 *= math.sin(alpha_rad) + math.cos(alpha_rad)
+        return sv1
+
+
+@dataclass
+class SeriesBentupBars(Stirrups):
+    def __post_init__(self):
+        self._type = ShearReinforcementType.SERIES_BENTUP_BARS
+        self.alpha = 45.0
 
 
 class StressBlock(ABC):
@@ -418,13 +464,15 @@ class RectBeamSection:
     def __str__(self) -> str:
         return f"Rectangular Section: {self.b}x{self.D} Concrete: {self.conc.label} Tension bars: {self.tbars.label}"
 
-    def tau_cmax(self) -> float | None:
+    def tau_cmax(self) -> float:
         tau_c = self.conc.tau_cmax()
         match self.member_type:
             case FlexuralMemberType.BEAM:
                 return tau_c
             case FlexuralMemberType.SLAB:
                 return tau_c / 2.0
+            case _:
+                raise ValueError(f"Error: Invalid member type {self.member_type}")
 
     def tau_c(self, Ast: float) -> float:
         pt = Ast * 100 / (self.b * self.d)
@@ -825,6 +873,13 @@ if __name__ == "__main__":
         1000, 150, 15, M20, Fe415, Fe415, Fe415, member_type=FlexuralMemberType.SLAB
     )
     print(f"tau_c={sec2.tau_c(Ast):.2f}")
+    vstirrups = Stirrups(Fe415, 8, 2)
+    istirrups = Stirrups(Fe415, 8, 2, alpha=45)
+    bupbars = SeriesBentupBars(Fe415, 16, 2, 45)
+    print(f"{vstirrups.Asv:.2f}, {istirrups.Asv:.2f}, {bupbars.Asv:.2f}")
+    print(
+        f"{vstirrups.sv(100e3, 230, 415)}, {istirrups.sv(100e3, 230, 415)}, {bupbars.sv(100e3, 230, 415)}"
+    )
     # tsec = FlangedSection(
     #     230.0, 450.0, 25.0, M20, Fe500, Fe500, Fe415, bf=900, df=150.0
     # )
