@@ -30,6 +30,7 @@ def interpolate_xy(xy: Array2D, x: float) -> float:
             y2 = xy[i, 1]
             y = y1 + (y2 - y1) / (x2 - x1) * (x - x1)
             return y
+    return 0.0
 
 
 class FlexuralMemberType(Enum):
@@ -597,7 +598,7 @@ class FlangedSection(RectBeamSection):
             )
             # print(f"1: Rectangular section {self.bf} x {self.d} {reqd_xu * self.d}")
             return reqd_xu * self.d
-        else:
+        else:  # NA lies below the flange
             Mu1 = self.Mu(self.df)
             if Mu <= Mu1:  # Required NA lies within the flange
                 reqd_xu = F(238, 198) - math.sqrt(
@@ -610,9 +611,16 @@ class FlangedSection(RectBeamSection):
                 Mulim = self.Mulim
                 if Mu <= Mulim:  # Singly reinforced flanged section
                     # print(f"3: NA below flange Singly reinforced: {Mu=} {Mulim=}")
-                    bracket = find_bracket(find_xu, self.df, self.xumax, 10, reqd_Mu=Mu)
-                    reqd_xu = brent_root(find_xu, bracket[0], bracket[1], reqd_Mu=Mu)
-                    return reqd_xu
+                    try:
+                        bracket = find_bracket(
+                            find_xu, self.df, self.xumax, 10, reqd_Mu=Mu
+                        )
+                        reqd_xu = brent_root(
+                            find_xu, bracket[0], bracket[1], reqd_Mu=Mu
+                        )
+                        return reqd_xu
+                    except Exception as e:
+                        raise ValueError("Error: FlangedSection.reqd_xu() failed")
                 else:  # Doubly reinforced flanged section
                     print(f"4: NA below flange Doubly reinforced: {Mu=} {Mulim=}")
 
