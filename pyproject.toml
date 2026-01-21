@@ -17,3 +17,10 @@ dependencies = [
     "sectionproperties>=3.10.0",
     "sympy>=1.14.0",
 ]
+
+[tool.uv]
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+]
+
