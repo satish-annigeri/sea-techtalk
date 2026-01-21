@@ -623,6 +623,7 @@ class FlangedSection(RectBeamSection):
                         raise ValueError("Error: FlangedSection.reqd_xu() failed")
                 else:  # Doubly reinforced flanged section
                     print(f"4: NA below flange Doubly reinforced: {Mu=} {Mulim=}")
+                    return 0.0
 
     def __str__(self) -> str:
         s = f"Flanged Section: {self.bw}x{self.D} "
@@ -646,7 +647,9 @@ class RectColumnSection:
         s += f"Concrete: {self.conc.label} Steel: {self.steel.label} Ast={self.total_As:.2f} mm^2"
         return s
 
-    def Pu_Mu(self, xu: float, report: bool = False) -> float:
+    def Pu_Mu(
+        self, xu: float, report: bool = False
+    ) -> tuple[float, float, OrderedDict]:
         self.xu = xu
         # print(xu, self.xu)
         k = self.xu / self.D
@@ -765,7 +768,7 @@ class RectColumnSection:
             Pu_calc, Mu_calc, _ = self.Pu_Mu(self.xu)
             return Pu_target - Pu_calc
 
-        if not xu_reqd:
+        if xu_reqd:
             self.xu = xu_reqd
 
         Pu_calc, Mu_calc, _ = self.Pu_Mu(self.xu)
