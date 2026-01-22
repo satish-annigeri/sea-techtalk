@@ -498,33 +498,50 @@ class RectBeamSection:
         else:
             raise ValueError(f"Invalid member type {self.member_type}")
 
-    def Asv_sv(self, Ast: float, Vu: float, Tu: float, alpha: float = 90) -> float:
-        alpha_rad = math.radians(alpha)
-        tau_v = Vu / (self.b * self.d)
-        tau_c = self.tau_c(Ast)
-        tau_cmax = self.tau_cmax()
-        if tau_v > tau_cmax:
-            raise ValueError(
-                f"Shear stress tau_v = {tau_v:.2f} N/mm^2 exceeds maximum shear stress tau_cmax = {tau_cmax:.2f} N/mm^2"
-            )
-        elif tau_v < tau_c:
-            return 0.4 * self.b / self.vbars.fd
-        else:
-            Vus = Vu - tau_c * self.b * self.d
-            return Vus / (
-                self.vbars.fd * self.d * (math.sin(alpha_rad) + math.cos(alpha_rad))
-            )
-
-    def design_section(
+    def design_bending(
         self, Mu: float, Vu: float, Tu: float = 0.0
     ) -> tuple[float, float]:
         Mt = Tu * (1 + self.D / self.b) / 1.7
         Asc, Ast = self.Asc_Ast(Mu + Mt)
-        nlegs = 2
-        Asv = nlegs * self.vbar_dia**2 * math.pi / 4
-        Asv_sv = self.Asv_sv(Ast, Vu, Tu)
-        sv = min(Asv / Asv_sv, self.d)
-        return Asc, Ast, sv
+        # nlegs = 2
+        # Asv = nlegs * self.vbar_dia**2 * math.pi / 4
+        # Asv_sv = self.Asv_sv(Ast, Vu, Tu)
+        # sv = min(Asv / Asv_sv, self.d)
+        return Asc, Ast
+
+    def design_shear(
+        self,
+        Vu: float,
+        Tu: float,
+        Ast: float,
+        _type: ShearReinforcementType,
+        nlegs: int,
+        dia: float,
+        alpha: float = 90,
+    ) -> float:
+        alpha_rad = math.radians(alpha)
+        tau_v = Vu / (self.b * self.d)
+        tau_c = self.tau_c(Ast)
+        tau_cmax = self.tau_cmax()
+        if (
+            tau_v > tau_cmax
+        ):  # Shear stress greater than the maximum permissible shear stress (even with shear reinforcement)
+            raise ValueError(
+                f"Shear stress tau_v = {tau_v:.2f} N/mm^2 exceeds maximum shear stress tau_cmax = {tau_cmax:.2f} N/mm^2"
+            )
+        else:  # Shear reinforcement can be provided
+            Vus = Vu - tau_c * self.b * self.d
+            match _type:
+                case ShearReinforcementType.VERTICAL_STIRRUP:
+                    shear_reinf = Stirrups(self.vbars, dia, nlegs, alpha=90.0)
+                case ShearReinforcementType.INCLINED_STIRRUP:
+                    shear_reinf = Stirrups(self.vbars, dia, nlegs, alpha=alpha)
+                case ShearReinforcementType.SERIES_BENTUP_BARS:
+                    shear_reinf = SeriesBentupBars(self.vbars, dia, nlegs, alpha)
+                case _:
+                    raise ValueError(f"Error: Invalid ShearReinforcementType {_type}")
+            print(shear_reinf.Asv)
+            return 0.0
 
 
 @dataclass
@@ -874,9 +891,9 @@ if __name__ == "__main__":
     print(f"A_st = {sec1.Asc_Ast(105e6)} mm^2")
     print(f"A_st = {sec1.Asc_Ast(140e6)} mm^2")
     print(f"A_st = {sec1.Asc_Ast(90e6)} mm^2")
-    Asc, Ast, sv = sec1.design_section(120e6, 90e3)
+    Asc, Ast = sec1.design_bending(120e6, 90e3)
     print(
-        f"Asc={Asc:.2f} mm^2, Ast={Ast:.2f} mm^2, sv={sv:.2f}, pt={Ast * 100 / (sec1.b * sec1.d):.2f}%"
+        f"Asc={Asc:.2f} mm^2, Ast={Ast:.2f} mm^2, pt={Ast * 100 / (sec1.b * sec1.d):.2f}%"
     )
     print(sec1.tau_cmax())
     print(f"tau_c={sec1.tau_c(Ast):.2f}")
@@ -890,6 +907,9 @@ if __name__ == "__main__":
     print(f"{vstirrups.Asv:.2f}, {istirrups.Asv:.2f}, {bupbars.Asv:.2f}")
     print(
         f"{vstirrups.sv(100e3, 230, 415)}, {istirrups.sv(100e3, 230, 415)}, {bupbars.sv(100e3, 230, 415)}"
+    )
+    sec1.design_shear(
+        120e3, 0.0, Ast, ShearReinforcementType.VERTICAL_STIRRUP, 2, 8, 90
     )
     # tsec = FlangedSection(
     #     230.0, 450.0, 25.0, M20, Fe500, Fe500, Fe415, bf=900, df=150.0
