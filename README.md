@@ -1,6 +1,6 @@
 # README
 
-This repository contains the material to be presented at the Structural Engineers' Association Tech Talk titled "Python for STructural Engineers" in February 2026.
+This repository contains the material to be presented at the Structural Engineers' Association Tech Talk titled "Python for Structural Engineers" in February 2026.
 
 ## Cloning this repository
 
@@ -24,7 +24,7 @@ My current preferred way of managing Python projects is with the Astral `uv`. He
 
 ## Installing `uv`
 
-If you are using Microsoft Windows 11, note that the command to download and install `uv` from the Astral website must be typed in the Windows PowerShell. To open Windows PowerShell, press the `Windows` key on your keyboard and type `powershell` and you can see it listed, when you can click on it to open the PowerShell window.
+If you are using Microsoft Windows 11, note that the command to download and install `uv` following the instructions from the [Astral documentation](https://docs.astral.sh/uv/)  must be typed in the Windows PowerShell. Open Windows PowerShell by pressing the `Windows` key on your keyboard and typing `powershell` in the search bar until you see it listed, and then clicking on it.
 
 ```bash
 PS> powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -58,12 +58,15 @@ Check the version of `uv` and list the available versions of Python for your mac
 ```
 This versions of Python shown in blue are already installed on your machine and the versions available are indicated with `<download available>`.
 
-Install version 3.14 of Python for your machine with the following command:
+Install the latest version Python for your machine with the following command:
 ```bash
-> uv python install 3.14
+> uv python install
 > uv python list
 ```
-Confirm that the requested version of Python is installed.
+Confirm that the requested version of Python is installed. To install a specific available version of Python, say 3.12, use
+```bash
+> uv python install -p 3.12
+```
 
 ## Create a virtual environment and install required packages
 It is standard practice to create a separate virtual environment for each Python project you work on. A virtual environment, usually referred to an `venv`, is created within the folder where your Python code resides. 
@@ -80,6 +83,12 @@ In GNU/Linux or macOS, open the `bash` terminal and use the `cd` command to navi
 > uv sync
 ```
 This will initialize the project (it creates the `.python-version` file in your folder) and set the latest version of Python installed on your machine as the required version of Python. The second command creates the `.venv` folder in your project folder and use the `pyproject.toml` in the cloned repository to download install the required Python packages from the PyPI Python repository. This will require that your machine be connected to the Internet.
+
+To install a specific available version of Python, say 3.12, use
+```bash
+> uv init -p 3.12
+> uv sync
+```
 
 ### Within your own new Python project folder
 
