@@ -116,3 +116,14 @@ VS Code is a general purpose code editor that works for many programming languag
 2. Ruff extension from Astral Software
 
 You are now created a Python project with a virtual environment and are ready to run the scripts.
+
+## Executing the scripts
+
+Navigate to the cloned directory an dtype the command to execute any of the Python scripts from the Windows Command Prompt or the bash terminal. Following command executes the script named `01_num_plt.py`:
+```bash
+> uv run -- marimo edit 01_np_plt.py
+```
+This runs the Marimo app within your default web browser. A Marimo app consists of cells that may contain Python code or Markdown text. To execute Python code in any of the cells, either press the run button to the bottom left of the cell or click the mouse anywhere within the cell and press `Ctrl+Enter` keys.
+
+If VS Code is open, you can open a terminal window within VS Code by pressing the key combination `` Ctrl+` `` where `` ` `` is the backquote character (usually to the left of the numeric key `1` on the first row of the keyboard, along with the `~` character). You can then type the above command within the terminal window.
+
