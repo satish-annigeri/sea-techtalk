@@ -1,7 +1,12 @@
 import marimo
 
-__generated_with = "0.19.4"
+__generated_with = "0.19.7"
 app = marimo.App(width="medium")
+
+
+@app.cell
+def _():
+    return
 
 
 @app.cell
@@ -14,8 +19,29 @@ def _():
     import pandas as pd
     from sectionproperties.analysis import Section
     from sectionproperties.pre.library import tapered_flange_i_section
+    return (
+        Enum,
+        Section,
+        dataclass,
+        field,
+        math,
+        mo,
+        pd,
+        tapered_flange_i_section,
+    )
 
-    return Enum, Section, dataclass, field, math, pd, tapered_flange_i_section
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Definition of constants for design of steel members
+
+    1. **Member type definitions:** Beams, columns, truss compression members, truss tension members
+    2. **Beam type definitions:** Simply supported beams, cantilever beams
+    3. **Class of standard steel sections:** Plastic, compact, semi-compact and slender
+    4. **Buckling class definitions:** Classes a, b, c and d
+    """)
+    return
 
 
 @app.cell
@@ -47,8 +73,15 @@ def _(Enum):
 
         def __str__(self) -> str:
             return f"Buckling Class {self.name}"
-
     return BeamType, SectionBucklingClass, SectionClass
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Read cross section data from Excel file
+    """)
+    return
 
 
 @app.cell
@@ -57,6 +90,19 @@ def _(pd):
     sec_db["alpha"] = sec_db["alpha"] - 90
     sec_db
     return (sec_db,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Class definition for an I section
+
+    1. Read section properties from an Excel file for specified section designation
+    2. Calculate geometric and plastic properties of the section - Area, second moment of area, section modulus, radii of gyration
+    3. Calculate class of section, buckling class
+    4. Calculate parameters to compute design axial force $P_d$, design bending moment $M_d$, design shear capacity $V_d$
+    """)
+    return
 
 
 @app.cell
@@ -294,8 +340,15 @@ def _(
 
         def Vp(self) -> float:
             return self.Av * self.fy / math.sqrt(3.0)
-
     return (ISection,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Test the code using solved examples from text books
+    """)
+    return
 
 
 @app.cell
