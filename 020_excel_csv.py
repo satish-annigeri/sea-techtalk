@@ -9,7 +9,6 @@ def _():
     import marimo as mo
 
     import numpy as np
-    import polars as pl
     import pandas as pd
     return mo, np, pd
 
@@ -29,7 +28,7 @@ def _(mo):
 
 
 @app.cell
-def _(pd):
+def _(mo, pd):
     fname = "reactions.xlsx"
 
     df = pd.read_excel(fname)
@@ -41,7 +40,7 @@ def _(pd):
 
     cols = ["Fx", "Fy", "Fz", "Mx", "My", "Mz"]
     df[cols] = df[cols].astype("float64")
-    df
+    mo.ui.table(df)
     return cols, df
 
 
@@ -84,7 +83,7 @@ def _(mo):
 
 
 @app.cell
-def _(df, np, pd):
+def _(df, mo, np, pd):
     mult_of = 50.0
     vmin = np.floor(df['Fy'].min() / mult_of) * mult_of
     vmax = np.ceil(df['Fy'].max() / mult_of) * mult_of
@@ -93,7 +92,7 @@ def _(df, np, pd):
     labels = [f"F{_i}" for _i in range(1, 6)]
     df["class_intervals"] = pd.cut(df["Fy"], bins=bins, labels=labels, include_lowest=True)
     df_sorted = df.sort_values(["class_intervals", "Fy"])
-    df_sorted
+    mo.ui.table(df_sorted)
     return (df_sorted,)
 
 
