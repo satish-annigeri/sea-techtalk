@@ -5,6 +5,18 @@ app = marimo.App(width="medium")
 
 
 @app.cell
+def _(mo):
+    mo.md(r"""
+    # Process Excel files
+
+    ## Read support reactions and design isolated footings
+
+    Import required modules and packages
+    """)
+    return
+
+
+@app.cell
 def _():
     import marimo as mo
 
@@ -13,6 +25,14 @@ def _():
 
     from footing import RectFooting
     return RectFooting, math, mo, pd
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    You may eed some utility functions, such as rounding up or down to a multiple of a given number
+    """)
+    return
 
 
 @app.cell
@@ -36,19 +56,49 @@ def _(RectFooting):
 
 
 @app.cell
-def _(pd):
-    df = pd.read_excel("reactions.xlsx")
-    col_names = df.iloc[0]
-    col_names = col_names.str.replace(" kNm", "")
-    col_names = col_names.str.replace(" kN", "")
-    df = df.iloc[1:].reset_index(drop=True)
-    df.columns = col_names
-    df.columns = df.columns.map(str)
+def _(mo):
+    mo.md(r"""
+    ## Read reactions from Staad.Pro output file
 
+    1. Export reactions from Staad.Pro to Microsoft Excel file
+    2. Read the reactions from the Excel file
+    3. Clean up the data
+       * Delete one row and reset the row index
+       * Change column names by stripping the units kNm and kN from the column headings (may need change if the units are different)
+    """)
+    return
+
+
+@app.cell
+def _(pd):
+    def read_staad_reactions(fname: str) -> pd.DataFrame:
+        df = pd.read_excel(fname)
+        col_names = df.iloc[0]
+        col_names = col_names.str.replace(" kNm", "")
+        col_names = col_names.str.replace(" kN", "")
+        df = df.iloc[1:].reset_index(drop=True)
+        df.columns = col_names
+        df.columns = df.columns.map(str)
+        return df
+
+    df = read_staad_reactions("reactions.xlsx")
     cols = ["Fx", "Fy", "Fz", "Mx", "My", "Mz"]
     df[cols] = df[cols].astype("float64")
     df
     return (df,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Develop an algorithm for the design of an isolated rectangular footing with column located at its centre
+
+    1. Use the **RectFooting** class developed in the module **footing.py**
+    2. Determine the required area of the footing based only on the axial load
+    3. Calculate the maximum pressure on the soil from the soil pressure at the four corners of the footing, based on $F_y$, $M_x$ and $M_z$ from Staad.Pro output
+    4. Label the design as **safe** if the maximum pressure is less than the SBC of foundation strata
+    """)
+    return
 
 
 @app.cell
@@ -91,9 +141,32 @@ def _(RectFooting, ceil_mof, math, pd):
 
 
 @app.cell
+def _(mo):
+    mo.md(r"""
+    Use the design algorithm to label the design as **safe** (**Safe=true**) or **unsafe** (**Safe=false**)
+    """)
+    return
+
+
+@app.cell
 def _(design_footing, df, mo):
     df[["Lx", "Ly", "max_p", "Safe"]] = df.apply(design_footing, sbc=150, axis=1)
     mo.ui.table(df, format_mapping={"Lx": "{:.2f}", "Ly": "{:.2f}", "max_p": "{:.2f}"})
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Revise footing size to make the design safe
+
+    1. Operate on only those footing designs that are unsafe
+    2. Increase the footing size by a specified amount, $0.15~\text{m}$ in this case
+    3. Calculate the status of the design
+    4. Arbitrarily repeat this step until all footing designs are safe
+    5. We can revise the algorithm to do repeated revision for each footing in one go rather than repeat design of the footings batchwise
+    6. Save the calculations to an Excel file
+    """)
     return
 
 
@@ -102,6 +175,7 @@ def _(df, mo, revise_footing, sbc):
     _df = df.copy()
     _df[["Lx", "Ly", "max_p", "Safe"]] = _df.apply(revise_footing, sbc=sbc, inc=0.15, axis=1)
     mo.ui.table(_df, format_mapping={"Lx": "{:.2f}", "Ly": "{:.2f}", "max_p": "{:.2f}"})
+    _df.to_excel("footing_design.xlsx")
     return
 
 
