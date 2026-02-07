@@ -737,6 +737,7 @@ dependencies = [
     { name = "pandas" },
     { name = "polars" },
     { name = "pymupdf" },
+    { name = "rcdesign" },
     { name = "sectionproperties" },
     { name = "sympy" },
     { name = "tabula-py", extra = ["jpype"] },
@@ -754,6 +755,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "polars", specifier = ">=1.37.0" },
     { name = "pymupdf", specifier = ">=1.26.7" },
+    { name = "rcdesign", specifier = ">=0.4.18" },
     { name = "sectionproperties", specifier = ">=3.10.0" },
     { name = "sympy", specifier = ">=1.14.0" },
     { name = "tabula-py", extras = ["jpype"], specifier = ">=2.10.0" },
@@ -1629,6 +1631,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/59/a5f38970f9bf07cee96128de79590bb354917914a9be11272cfc7ff26af0/pyzmq-27.1.0-cp314-cp314t-win32.whl", hash = "sha256:1f0b2a577fd770aa6f053211a55d1c47901f4d537389a034c690291485e5fe92", size = 587472, upload-time = "2025-09-08T23:08:58.18Z" },
     { url = "https://files.pythonhosted.org/packages/70/d8/78b1bad170f93fcf5e3536e70e8fadac55030002275c9a29e8f5719185de/pyzmq-27.1.0-cp314-cp314t-win_amd64.whl", hash = "sha256:19c9468ae0437f8074af379e986c5d3d7d7bfe033506af442e8c879732bedbe0", size = 661401, upload-time = "2025-09-08T23:08:59.802Z" },
     { url = "https://files.pythonhosted.org/packages/81/d6/4bfbb40c9a0b42fc53c7cf442f6385db70b40f74a783130c5d0a5aa62228/pyzmq-27.1.0-cp314-cp314t-win_arm64.whl", hash = "sha256:dc5dbf68a7857b59473f7df42650c621d7e8923fb03fa74a526890f4d33cc4d7", size = 575170, upload-time = "2025-09-08T23:09:01.418Z" },
+]
+
+[[package]]
+name = "rcdesign"
+version = "0.4.18"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+    { name = "sympy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6b/78/bb69367a2e2d36bc575c6097accd0a3b3f0f1236d704de4fddfd6b49ad82/rcdesign-0.4.18.tar.gz", hash = "sha256:2cd0fe17baa90f28a24de6b4efd4d452283db9d2049009877c750347033fd2dd", size = 74879, upload-time = "2025-05-17T00:47:24.557Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b9/f2/13fe7e45bfe941221ea74897ba5820351ef8205f2c5ac69a57be110401ff/rcdesign-0.4.18-py3-none-any.whl", hash = "sha256:1166d8c1a3719a616a439b0bbc138787fb92c681c97c248f1cd06942ea0914be", size = 21662, upload-time = "2025-05-17T00:47:23.117Z" },
 ]
 
 [[package]]
