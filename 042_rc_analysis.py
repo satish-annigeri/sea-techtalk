@@ -97,7 +97,6 @@ def _(
 
     _sec = RectBeamSection(230, 450, sb, m20, _steel, _sh_st, 25)
     _xu = _sec.xu(0.0035)
-    print(f"xu = {_xu:.2f}")
     print(_sec.report(_xu, 0.0035))
     return fe415, m20, sb
 
@@ -221,7 +220,6 @@ def _(
     _lat_ties = LateralTie(fe415, 8, 150)
     _colsec = RectColumnSection(_b, _D, csb, m20, _long_st, _lat_ties, 35)
     _xu = 900
-    _k = _xu / _D  # k = 2 / 3
     print(_colsec.report(_xu))
     return
 
