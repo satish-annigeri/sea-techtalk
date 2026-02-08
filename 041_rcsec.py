@@ -1,7 +1,23 @@
 import marimo
 
-__generated_with = "0.19.4"
+__generated_with = "0.19.9"
 app = marimo.App(width="medium")
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Design of RC Sections for Bending
+
+    Code is imported from the module **rcd_bending_rect** which defines the following
+
+    1. Concrete material and its stress-strain relation as defined in Limit State Design as per IS456:2000
+    2. Mild steel and Cold worked deformed reinforcement bars and their stress-strain relation
+    3. Rectangular sections subjected to bending
+    4. Flanged sections subjected to bending
+    5. Rectangular sections subjected to axial compression and uniaxial bending (analysis is complete, design is in progress)
+    """)
+    return
 
 
 @app.cell
@@ -16,6 +32,7 @@ def _():
     from collections import OrderedDict
 
     from rcd_bending_rect import Concrete, RebarMS, RebarHYSD, RectBeamSection, FlangedSection, RectColumnSection
+
     return (
         Concrete,
         F,
@@ -29,6 +46,19 @@ def _():
         plt,
         pprint,
     )
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Stress-Strain Relation for Concrete
+
+    1. `M20` represents concrete of grade M20
+    2. `_x` are the values of strains for which we wish to compute the stress
+    3. `_y` are the values of stress corresponding to `_x`
+    4. We plot a graph of stress v/s strain
+    """)
+    return
 
 
 @app.cell
@@ -50,6 +80,21 @@ def _(Concrete, np, plt):
     return (M20,)
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Stress-Strain Relation for Mild Steel with $f_y=250 \text{N/mm}^2$
+
+    1. `_fy` represents the characteristic strength of mild steel in N/mm$^2$
+    2. `Es` repersents the modulus of elasticity steel
+    3. `MS250` represents mild steel reinforcement bars with $f_y=250 \text{N/mm}^2$
+    4. `_x` are the values of strains for which we wish to compute the stress
+    5. `_y` are the values of stress coresponding to `_x`
+    6. We plot a graph of stress v/s strain
+    """)
+    return
+
+
 @app.cell
 def _(F, RebarMS, np, plt):
     _fy = 250.0
@@ -69,6 +114,21 @@ def _(F, RebarMS, np, plt):
 
     plt.show()
     return (Es,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Stress-Strain Relation for HYSD bars with $f_y=500 \text{N/mm}^2$
+
+    1. `_fy` represents the characteristic strength of mild steel in N/mm$^2$
+    2. `Es` repersents the modulus of elasticity steel
+    3. `Fe500` represents HYSD reinforcement bars with $f_y=500 \text{N/mm}^2$
+    4. `_x` are the values of strains for which we wish to compute the stress
+    5. `_y` are the values of stress coresponding to `_x`
+    6. We plot a graph of stress v/s strain
+    """)
+    return
 
 
 @app.cell
@@ -99,6 +159,18 @@ def _(Es, F, RebarHYSD, np, plt):
     return (Fe500,)
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Design of Rectangular Sections subjected to Bending
+
+    1. `_resc` represents a rectangular section of size $230 \times 450$ with M20 grade concrete and Fe500 grade rebars for tension, compression and shear reinforcements
+    2. We calculate the area of steel in compression (`_Asc`) and tension (`_Ast`) required for a design moment $M_u = 100$ kNm and print the results
+    3. We calculate the area of steel in compression (`_Asc`) and tension (`_Ast`) required for a design moment $M_u = 150$ kNm and print the results
+    """)
+    return
+
+
 @app.cell
 def _(Fe500, M20, RectBeamSection):
     _rsec = RectBeamSection(230, 450, conc=M20, clear_cover=25, tbars=Fe500, cbars=Fe500, vbars=Fe500)
@@ -107,6 +179,18 @@ def _(Fe500, M20, RectBeamSection):
 
     _Asc, _Ast = _rsec.Asc_Ast(Mu=150e6)
     print(f"Asc={_Asc:.2f} mm^2, Ast={_Ast:.2f} mm^2")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Design of Flanged Sections subjected to Bending
+
+    1. `_tesc` represents a rectangular section of size $230 \times 450, b_f=1000, d_f=150$ with M20 grade concrete and Fe500 grade rebars for tension, compression and shear reinforcements
+    2. Calculate the depth of the neutral axis (`_reqd_xu`) required to for a design moment $M_u=140$ kNm, and print the result
+    3. Calculate the depth of the neutral axis (`_reqd_xu`) required to for a design moment $M_u=340$ kNm, and print the result
+    """)
     return
 
 
@@ -191,6 +275,7 @@ def _(Concrete, Rebar, RebarHYSD, RebarMS):
             return RebarMS(fy=250)
         elif grade in ["MS", "FE415", "FE500", "FE550"]:
             return RebarHYSD(fy=float(grade[2:]))
+
     return get_conc, get_steel
 
 
@@ -232,7 +317,7 @@ def _(
 
     rsec = RectBeamSection(b=b, D=D,clear_cover=dc, conc=_conc, tbars=_main_steel, cbars=_main_steel, vbars=_sec_steel)
     _Mulim = rsec.Mulim
-    _Asc, _Ast, _sv = rsec.design_section(Mu=_Mu, Vu=_Vu)
+    _Asc, _Ast = rsec.design_bending(Mu=_Mu, Vu=_Vu)
     print(f"Mu_lim={_Mulim/1e6:.2f} kNm, Asc={_Asc:.2f} mm^2, Ast={_Ast:.2f} mm^2")
     return
 
