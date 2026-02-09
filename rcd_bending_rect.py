@@ -185,9 +185,9 @@ class RebarHYSD(Rebar):
 @dataclass
 class ShearReinforcement(ABC):
     rebar: Rebar
-    dia: float
     nlegs: int
-    alpha: float = 90.0
+    dia: float
+    alpha: float
 
     @property
     def nbars(self) -> int:
@@ -211,32 +211,46 @@ class ShearReinforcement(ABC):
 
         return min(sv1, self.rebar.fd * self.Asv / (0.4 * b), 300.0)
 
+    @property
+    def alpha_rad(self) -> float:
+        return self.alpha * math.pi / 180
+
     @abstractmethod
-    def sv(self, Vus: float, b: float, d: float) -> float:
+    def sv(self, Vus: float, d: float) -> float:
         pass
+
+    def __str__(self) -> str:
+        return f"{self.nlegs}-{self.dia} ({self.Asv:.2f})"
 
 
 @dataclass
 class Stirrups(ShearReinforcement):
-    def __post_init__(self):
-        if self.alpha == 90:
-            self._type = ShearReinforcementType.VERTICAL_STIRRUP
-        else:
-            self._type = ShearReinforcementType.INCLINED_STIRRUP
+    _type: ShearReinforcementType
 
-    def sv(self, Vus: float, b: float, d: float) -> float:
+    def __post_init__(self):
+        if self._type == ShearReinforcementType.VERTICAL_STIRRUP:
+            self.alpha = 90.0
+
+    def sv(self, Vus: float, d: float) -> float:
         sv1 = self.rebar.fd * self.Asv * d / Vus
         if self.alpha != 90:  # Inclined stirrups
-            alpha_rad = self.alpha * math.pi / 180.0
-            sv1 *= math.sin(alpha_rad) + math.cos(alpha_rad)
+            sv1 *= math.sin(self.alpha_rad) + math.cos(self.alpha_rad)
         return sv1
+
+    def Vus(self) -> float:
+        return 0.0
 
 
 @dataclass
-class SeriesBentupBars(Stirrups):
+class BentupBars(ShearReinforcement):
     def __post_init__(self):
-        self._type = ShearReinforcementType.SERIES_BENTUP_BARS
-        self.alpha = 45.0
+        self._type = ShearReinforcementType.BENTUP_BARS
+
+    def sv(self, Vus: float, d: float) -> float:
+        return 0.0
+
+    def Vus(self) -> float:
+        return self.rebar.fd * self.Asv * math.sin(self.alpha_rad)
 
 
 class StressBlock(ABC):
@@ -503,10 +517,7 @@ class RectBeamSection:
     ) -> tuple[float, float]:
         Mt = Tu * (1 + self.D / self.b) / 1.7
         Asc, Ast = self.Asc_Ast(Mu + Mt)
-        # nlegs = 2
-        # Asv = nlegs * self.vbar_dia**2 * math.pi / 4
-        # Asv_sv = self.Asv_sv(Ast, Vu, Tu)
-        # sv = min(Asv / Asv_sv, self.d)
+
         return Asc, Ast
 
     def design_shear(
@@ -519,13 +530,11 @@ class RectBeamSection:
         dia: float,
         alpha: float = 90,
     ) -> float:
-        alpha_rad = math.radians(alpha)
         tau_v = Vu / (self.b * self.d)
         tau_c = self.tau_c(Ast)
         tau_cmax = self.tau_cmax()
-        if (
-            tau_v > tau_cmax
-        ):  # Shear stress greater than the maximum permissible shear stress (even with shear reinforcement)
+        if tau_v > tau_cmax:
+            # Shear stress greater than the maximum permissible shear stress (even with shear reinforcement)
             raise ValueError(
                 f"Shear stress tau_v = {tau_v:.2f} N/mm^2 exceeds maximum shear stress tau_cmax = {tau_cmax:.2f} N/mm^2"
             )
@@ -533,15 +542,25 @@ class RectBeamSection:
             Vus = Vu - tau_c * self.b * self.d
             match _type:
                 case ShearReinforcementType.VERTICAL_STIRRUP:
-                    shear_reinf = Stirrups(self.vbars, dia, nlegs, alpha=90.0)
+                    shear_reinf = Stirrups(
+                        self.vbars, nlegs, dia, alpha=90.0, _type=_type
+                    )
                 case ShearReinforcementType.INCLINED_STIRRUP:
-                    shear_reinf = Stirrups(self.vbars, dia, nlegs, alpha=alpha)
+                    shear_reinf = Stirrups(
+                        self.vbars, nlegs, dia, alpha=alpha, _type=_type
+                    )
                 case ShearReinforcementType.SERIES_BENTUP_BARS:
-                    shear_reinf = SeriesBentupBars(self.vbars, dia, nlegs, alpha)
+                    shear_reinf = Stirrups(self.vbars, nlegs, dia, alpha, _type)
+                case ShearReinforcementType.BENTUP_BARS:
+                    shear_reinf = BentupBars(self.vbars, nlegs, dia, alpha)
                 case _:
                     raise ValueError(f"Error: Invalid ShearReinforcementType {_type}")
-            print(shear_reinf.Asv)
-            return 0.0
+            if _type == ShearReinforcementType.BENTUP_BARS:
+                Vus = shear_reinf.Vus()
+                return Vus
+            else:
+                sv = shear_reinf.sv(Vus, self.d)
+                return min(sv, shear_reinf.sv_max(self.b, self.d))
 
 
 @dataclass
@@ -897,19 +916,23 @@ if __name__ == "__main__":
     )
     print(sec1.tau_cmax())
     print(f"tau_c={sec1.tau_c(Ast):.2f}")
+    nlegs = 2
+    dia = 8
+    sv = sec1.design_shear(
+        100e3, 0.0, Ast, ShearReinforcementType.VERTICAL_STIRRUP, nlegs, dia, 90
+    )
+    print(f"Shear design: {nlegs}-#{dia} @ {sv:.2f}")
+
     sec2 = RectBeamSection(
         1000, 150, 15, M20, Fe415, Fe415, Fe415, member_type=FlexuralMemberType.SLAB
     )
     print(f"tau_c={sec2.tau_c(Ast):.2f}")
-    vstirrups = Stirrups(Fe415, 8, 2)
-    istirrups = Stirrups(Fe415, 8, 2, alpha=45)
-    bupbars = SeriesBentupBars(Fe415, 16, 2, 45)
-    print(f"{vstirrups.Asv:.2f}, {istirrups.Asv:.2f}, {bupbars.Asv:.2f}")
+    vstirrups = Stirrups(Fe415, 2, 8, 90, ShearReinforcementType.VERTICAL_STIRRUP)
+    istirrups = Stirrups(Fe415, 2, 8, 45, ShearReinforcementType.INCLINED_STIRRUP)
+    bupbars = BentupBars(Fe415, 2, 16, 45)
+    print(f"{vstirrups}, {istirrups}, {bupbars}")
     print(
-        f"{vstirrups.sv(100e3, 230, 415)}, {istirrups.sv(100e3, 230, 415)}, {bupbars.sv(100e3, 230, 415)}"
-    )
-    sec1.design_shear(
-        120e3, 0.0, Ast, ShearReinforcementType.VERTICAL_STIRRUP, 2, 8, 90
+        f"{vstirrups.sv(100e3, 415):.2f}, {istirrups.sv(100e3, 415):.2f}, {bupbars.Vus():.2f}"
     )
     # tsec = FlangedSection(
     #     230.0, 450.0, 25.0, M20, Fe500, Fe500, Fe415, bf=900, df=150.0

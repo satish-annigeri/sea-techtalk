@@ -31,7 +31,9 @@ def _():
     from pprint import pprint
     from collections import OrderedDict
 
-    from rcd_bending_rect import Concrete, RebarMS, RebarHYSD, RectBeamSection, FlangedSection, RectColumnSection
+    from rcd_bending_rect import (
+        Concrete, RebarMS, RebarHYSD, RectBeamSection, FlangedSection, RectColumnSection, Stirrups, ShearReinforcementType
+    )
 
     return (
         Concrete,
@@ -41,6 +43,8 @@ def _():
         RebarMS,
         RectBeamSection,
         RectColumnSection,
+        ShearReinforcementType,
+        Stirrups,
         mo,
         np,
         plt,
@@ -234,20 +238,22 @@ def _(Fe500, M20, RectColumnSection, pprint):
 def _(mo):
     conc = mo.ui.dropdown(options=["M20", "M25", "M30", "M35", "M40"], value="M20", label="Concrete grade:")
     main_steel = mo.ui.dropdown(options=["Mild Steel", "Fe415", "Fe500", "Fe550"], value="Fe500", label="Main rebars")
-    sec_steel = mo.ui.dropdown(options=["Mild Steel", "Fe415", "Fe500", "Fe550"], value="Fe500", label="Secondary rebars")
+    shear_steel = mo.ui.dropdown(options=["Mild Steel", "Fe415", "Fe500", "Fe550"], value="Fe500", label="Stirrups")
     sec_b = mo.ui.number(label="Width (mm):")
     sec_D = mo.ui.number(label="Overall depth (mm):")
     sec_cover = mo.ui.number(label="Clear cover (mm):")
-    rebar_t = mo.ui.multiselect(options=["12", "16", "20", "25"], label="Tension rebar dia (mm):")
-    rebar_c = mo.ui.multiselect(options=["12", "16", "20", "25"], label="Compression rebar dia (mm):")
-    rebar_v = mo.ui.multiselect(options=["6", "8", "10", "12"], label="Stirrup dia (mm):")
+    rebar_t = mo.ui.dropdown(options=["12", "16", "20", "25"], label="Tension rebar dia (mm):")
+    rebar_c = mo.ui.dropdown(options=["12", "16", "20", "25"], label="Compression rebar dia (mm):")
+    nlegs = mo.ui.number(label="Legs:")
+    rebar_v = mo.ui.dropdown(options=["6", "8", "10", "12"], label="Stirrup dia (mm):")
     design_Mu = mo.ui.number(label="Mu (kNm):")
     design_Vu = mo.ui.number(label="Vu (kNm):")
 
     mo.vstack([
-        mo.hstack([conc, main_steel, sec_steel], widths="equal"),
         mo.hstack([sec_b, sec_D, sec_cover], justify="start"),
-        mo.hstack([rebar_t, rebar_c, rebar_v], justify="start"),
+        mo.hstack([conc], justify="start"),
+        mo.hstack([main_steel, rebar_t, rebar_c], justify="start"),
+        mo.hstack([shear_steel, nlegs, rebar_v], justify="start"),
         mo.hstack([design_Mu, design_Vu], justify="start"),
     ])
     return (
@@ -255,11 +261,19 @@ def _(mo):
         design_Mu,
         design_Vu,
         main_steel,
+        nlegs,
+        rebar_v,
         sec_D,
         sec_b,
         sec_cover,
-        sec_steel,
+        shear_steel,
     )
+
+
+@app.cell
+def _(mo, report):
+    mo.md(report)
+    return
 
 
 @app.cell
@@ -282,44 +296,55 @@ def _(Concrete, Rebar, RebarHYSD, RebarMS):
 @app.cell
 def _(
     RectBeamSection,
+    ShearReinforcementType,
+    Stirrups,
     conc,
     design_Mu,
     design_Vu,
     get_conc,
     get_steel,
     main_steel,
+    nlegs,
+    rebar_v,
     sec_D,
     sec_b,
     sec_cover,
-    sec_steel,
+    shear_steel,
 ):
     b = sec_b.value
     D = sec_D.value
     dc = sec_cover.value
 
-    if b and D and dc:
-        print(f"Rectangular section: {b} x {D} mm Clear cover={dc}")
     if conc.value:
         _conc = get_conc(conc.value)
-        print(f"Concrete: {_conc.fck}")
+
     if main_steel.value:
         _main_steel = get_steel(main_steel.value)
-        print(f"Main steel: {_main_steel.fy}")
 
-    if sec_steel.value:
-        _sec_steel = get_steel(sec_steel.value)
-        print(f"Secondary steel: {_sec_steel.fy}")
+    if shear_steel.value and nlegs.value and rebar_v.value:
+        _shear_steel = get_steel(shear_steel.value)
+        _nlegs = nlegs.value
+        _stirrup_dia = rebar_v.value
 
     if design_Mu.value and design_Vu.value:
         _Mu = design_Mu.value * 1e6
         _Vu = design_Vu.value * 1e3
-        print(f"Mu={_Mu/1e6} kNm, Vu={_Vu/1e3} kN")
+        _Tu = 0.0
 
-    rsec = RectBeamSection(b=b, D=D,clear_cover=dc, conc=_conc, tbars=_main_steel, cbars=_main_steel, vbars=_sec_steel)
+    rsec = RectBeamSection(b=b, D=D,clear_cover=dc, conc=_conc, tbars=_main_steel, cbars=_main_steel, vbars=_shear_steel)
     _Mulim = rsec.Mulim
-    _Asc, _Ast = rsec.design_bending(Mu=_Mu, Vu=_Vu)
-    print(f"Mu_lim={_Mulim/1e6:.2f} kNm, Asc={_Asc:.2f} mm^2, Ast={_Ast:.2f} mm^2")
-    return
+    Asc, Ast = rsec.design_bending(Mu=_Mu, Vu=_Vu)
+    _shear_reinf = Stirrups(_shear_steel, _nlegs, _stirrup_dia, 90, ShearReinforcementType.VERTICAL_STIRRUP)
+    sv = rsec.design_shear(_Vu, _Tu, Ast, ShearReinforcementType.VERTICAL_STIRRUP, _nlegs, 8, 90)
+
+    report = rf"""**Design of Rectangular Section for Bending**<br>
+    $M_u={_Mu/1e6}$ kNm, $V_u={_Vu/1e3}$ kN<br>
+    Section: {b} $\times$ {D} mm<br>
+    Compression steel: Grade {main_steel.value}, Area={Asc:.2f} mm$^2$<br>
+    Tension steel: Grade {main_steel.value}, Area={Ast:.2f} mm$^2$<br>
+    Vertical stirrups: {nlegs.value}-{rebar_v.value} @ {sv:.2f} mm c/c
+    """
+    return (report,)
 
 
 if __name__ == "__main__":
