@@ -262,6 +262,8 @@ def _(mo):
         design_Vu,
         main_steel,
         nlegs,
+        rebar_c,
+        rebar_t,
         rebar_v,
         sec_D,
         sec_b,
@@ -305,6 +307,8 @@ def _(
     get_steel,
     main_steel,
     nlegs,
+    rebar_c,
+    rebar_t,
     rebar_v,
     sec_D,
     sec_b,
@@ -340,8 +344,9 @@ def _(
     report = rf"""**Design of Rectangular Section for Bending**<br>
     $M_u={_Mu/1e6}$ kNm, $V_u={_Vu/1e3}$ kN<br>
     Section: {b} $\times$ {D} mm<br>
-    Compression steel: Grade {main_steel.value}, Area={Asc:.2f} mm$^2$<br>
-    Tension steel: Grade {main_steel.value}, Area={Ast:.2f} mm$^2$<br>
+    Concrete: {conc.value}<br>
+    Compression steel: Grade {main_steel.value}, Area={Asc:.2f} mm$^2$ [{rsec.num_bars(Asc, int(rebar_c.value))}]<br>
+    Tension steel: Grade {main_steel.value}, Area={Ast:.2f} mm$^2$ [{rsec.num_bars(Ast, int(rebar_t.value))}]<br>
     Vertical stirrups: {nlegs.value}-{rebar_v.value} @ {sv:.2f} mm c/c
     """
     return (report,)

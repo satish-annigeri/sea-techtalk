@@ -374,6 +374,13 @@ class RectBeamSection:
     vbar_dia: float = 6
     member_type: FlexuralMemberType = FlexuralMemberType.BEAM
 
+    @staticmethod
+    def num_bars(area: float, dia: float) -> str:
+        n = int(math.ceil(area / (math.pi * dia**2 / 4)))
+        a = n * math.pi * dia**2 / 4
+        r = (a / area) - 1
+        return f"{n}-#{dia} ({a:.2f} | {area:.2f}) {r:.2f}%"
+
     @property
     def d(self) -> float:
         return self.D - self.dc  # assuming a single layer of tension bars
@@ -914,6 +921,8 @@ if __name__ == "__main__":
     print(
         f"Asc={Asc:.2f} mm^2, Ast={Ast:.2f} mm^2, pt={Ast * 100 / (sec1.b * sec1.d):.2f}%"
     )
+    dia = 20
+    print(f"Tension steel: {sec1.num_bars(Ast, dia)}")
     print(sec1.tau_cmax())
     print(f"tau_c={sec1.tau_c(Ast):.2f}")
     nlegs = 2
