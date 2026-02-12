@@ -57,16 +57,6 @@ You can explore the cloned local repository with the command
 ```
 
 ## Setting up your Python environment
-
-Change into the folder where you cloned the `sea-techtalk` GitHub repository or unzipped the contents of the `sea-techtalk` github repository. Use `uv` to create your Python virtual environment with the following commands at the Command Prompt or terminal
-```bash
-> uv sync
-> uv run python -V
-> uv pip list
-```
-The first command downloads and installs the required version of Python from the Internet if necessary.
-
-## Create Python Virtual Environment
 Open the Windows Command Prompt or the GNU/Linux or macOS terminal to use `uv`. Open the Windows Command Prompt in one of the following ways:
 
 1. Press the `Windows` key on your keyboard and type `cmd` and click on Command Prompt to open the Windows Command Prompt window. Then navigate to the folder where you cloned the GitHub repository.
@@ -74,7 +64,15 @@ Open the Windows Command Prompt or the GNU/Linux or macOS terminal to use `uv`. 
 
 If you are using GNU/Linux or macOS, open the `bash` terminal.
 
-### Creating a Fresh Python Project
+Use `uv` to create your Python virtual environment with the following commands at the Command Prompt or terminal
+```bash
+> uv sync
+> uv run python -V
+> uv pip list
+```
+The first command downloads and installs the required version of Python from the Internet if necessary, the second displays the version of Python installed in your virtual environment and the third lists all the packages installed in your virtual environment.
+
+#### Creating a Fresh Python Project
 
 If you are starting a new project of your own instead of cloning an existing GitHub repository, you can set up a virtual environment for your project as follows:
 
@@ -91,7 +89,7 @@ The sequence of commands to be typed at the command prompt in both Windows 11 Co
 ```
 The first command initializes the project and the second command installs the Python package `numpy` to the project and updates `pyproject.toml` file to erflect this change.
 
-## VS Code code editor
+## VS Code Code Editor
 Python scripts (Python programs are called scripts), can be created in any text editor of your choice, such as Notepad on Windows or Vim on GNU/Linux on macOS. The current popular code editor is Microsoft VS Code. You can download and install VS Code for your machine and Operating System from [VS Code web page](https://code.visualstudio.com/download).
 
 VS Code is a general purpose code editor and works for many programming languages. To work with Python, it is best to install VS Code Extensions that make this easy. This is done by clicking on the Extensions icon on the left vertical toolbar, searching for the required extension in the search bar, clicking on the name of the extension and clicking **Install** on the window to the right. Install the following Extensions:
