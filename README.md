@@ -72,7 +72,7 @@ Use `uv` to create your Python virtual environment with the following commands a
 ```
 The first command downloads and installs the required version of Python from the Internet if necessary, the second displays the version of Python installed in your virtual environment and the third lists all the packages installed in your virtual environment.
 
-#### Creating a Fresh Python Project
+#### Creating a fresh Python project
 
 If you are starting a new project of your own instead of cloning an existing GitHub repository, you can set up a virtual environment for your project as follows:
 
@@ -89,7 +89,7 @@ The sequence of commands to be typed at the command prompt in both Windows 11 Co
 ```
 The first command initializes the project and the second command installs the Python package `numpy` to the project and updates `pyproject.toml` file to erflect this change.
 
-## VS Code Code Editor
+## VS Code code editor
 Python scripts (Python programs are called scripts), can be created in any text editor of your choice, such as Notepad on Windows or Vim on GNU/Linux on macOS. The current popular code editor is Microsoft VS Code. You can download and install VS Code for your machine and Operating System from [VS Code web page](https://code.visualstudio.com/download).
 
 VS Code is a general purpose code editor and works for many programming languages. To work with Python, it is best to install VS Code Extensions that make this easy. This is done by clicking on the Extensions icon on the left vertical toolbar, searching for the required extension in the search bar, clicking on the name of the extension and clicking **Install** on the window to the right. Install the following Extensions:
