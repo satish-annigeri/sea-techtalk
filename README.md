@@ -1,6 +1,6 @@
 # README
 
-This repository contains the material to be presented at the Structural Engineers' Association Tech Talk titled "Python for Structural Engineers" in February 2026.
+This repository contains the material that was presented at the Structural Engineers' Association Tech Talk titled "Python for Structural Engineers" on February 20, 2026.
 
 ## Tools you will need
 The Python code in this repository is in the form of marimo notebooks. A merimo notebook runs in a web browser and can contain code cells or Markdown cells. The code in the code cells can be executed, and marimo being a reactive notebook, executing code in a cell will **automatically** execute code in all other cells that depend on the variable in the cell irrespective of their physicallocation within the notebook. This is similar to the automatic recalculations in Microsoft Excel when you change the value in one cell.
@@ -15,11 +15,12 @@ You can work in Microsoft Windows, GNU/Linux or macOS. You must be ready to open
 
 ## Installing `git`
 
-You can download `git` for Microsoft Windows from [here](https://gitforwindows.org/). On GNU/Linux or macOS use your favourite package manager to download and install `git`. Some common package managers are:
-1. Debian, Ubuntu GNU/Linux: `apt`
-2. macOS: `brew`
+You can `git` in the following ways, depending on your platform:
+1. Microsoft Windows: Download from [here](https://gitforwindows.org/) and install
+2. Debian, Ubuntu GNU/Linux: Use the `apt` package manager
+3. macOS: Use `brew`
 
-Verify it is installed and accessible from your Command Prompt or terminal:
+After installing, verify it is installed and accessible from your Command Prompt or terminal:
 ```bash
 > git --version
 ```
