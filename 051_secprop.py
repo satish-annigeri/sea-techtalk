@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.19.4"
+__generated_with = "0.19.11"
 app = marimo.App(width="medium")
 
 
@@ -15,7 +15,8 @@ def _():
     from sectionproperties.analysis import Section
     from sectionproperties.analysis.plastic_section import PlasticSection
 
-    from sectionproperties.pre.library import tapered_flange_channel, rectangular_hollow_section, tapered_flange_i_section
+    from sectionproperties.pre.library import (tapered_flange_channel, rectangular_hollow_section, tapered_flange_i_section)
+
     return (
         Geometry,
         Polygon,
