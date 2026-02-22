@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.19.9"
+__generated_with = "0.19.11"
 app = marimo.App(width="medium")
 
 
@@ -47,6 +47,7 @@ def _():
         Concrete,
         F,
         FlangedSection,
+        Rebar,
         RebarHYSD,
         RebarMS,
         RectBeamSection,
@@ -395,10 +396,10 @@ def _(
     )
 
     report = rf"""**Design of Rectangular Section for Bending**<br>
-    $M_u={_Mu / 1e6}$ kNm, $V_u={_Vu / 1e3}$ kN<br>
+    $M_u=${_Mu / 1e6} kNm, $V_u=${_Vu / 1e3} kN<br>
     Section: {b} $\times$ {D} mm<br>
     Concrete: {conc.value}<br>
-    Compression steel: Grade {main_steel.value}, Area={Asc:.2f} mm$^2$ [{rsec.num_bars(Asc, int(rebar_c.value))}]<br>
+    Compression steel: Grade {main_steel.value}, Area={Asc:.2f} mm$^2$ [{rsec.num_bars(Asc, int(rebar_c.value)) if Asc > 0 else ""}]<br>
     Tension steel: Grade {main_steel.value}, Area={Ast:.2f} mm$^2$ [{rsec.num_bars(Ast, int(rebar_t.value))}]<br>
     Vertical stirrups: {nlegs.value}-{rebar_v.value} @ {sv:.2f} mm c/c
     """
